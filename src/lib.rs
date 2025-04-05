@@ -1,80 +1,62 @@
-use clap::Parser;
+use std::io;
+use std::path::PathBuf;
 use crate::bank_parser::BankParserError;
 use crate::bank_path::BankPathError;
+use clap::Parser;
 use regex::Error as RegexError;
 
-pub mod bank_path;
 pub mod bank_parser;
+pub mod bank_path;
 
-
-
-/// A simple CLI tool to resign a bank file
+/// A simple CLI tool to validate and resign StarCraft II bank files.
 #[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
+#[command(author, version, about, long_about = None)]
 pub struct Args {
-    /// Filepath to the bank file
+    /// Filepath to the bank file (.SC2Bank)
+    #[arg(value_name = "BANK_PATH")]
     pub bank_path: String,
 
-    /// Real bank file name in key (if modified in path)
-    #[arg(short('n'), long)]
+    /// Override bank name (if different from file name without extension)
+    #[arg(short = 'n', long)]
     pub bank_name: Option<String>,
 
-    /// Author handle (if not in path)
-    #[arg(short, long("author"))]
+    /// Override author handle (e.g., 1-S2-1-AUTHID)
+    #[arg(short = 'a', long = "author")]
     pub author_handle: Option<String>,
 
-    /// Player handle (if not in path)
-    #[arg(short, long("player"))]
+    /// Override player handle (e.g., 2-S2-1-PLAYER-HANDLE)
+    #[arg(short = 'p', long = "player",)]
     pub player_handle: Option<String>,
 
-
-    /// Flag to actually replace the signature in the file
-    #[arg(short = 'w', long = "write", action)] // Added flag
+    /// Write the computed signature back to the file if it differs
+    #[arg(short = 'w', long = "write", action)]
     pub write: bool,
 }
 
 
 pub type AppResult<T> = Result<T, AppError>;
 
-#[derive(Debug)]
-pub enum AppError{
-    XmlReaderError(xml::reader::Error),
-    IoError(std::io::Error),
-    BankPathError(BankPathError),
-    BankParseError(BankParserError),
+
+#[derive(Debug, thiserror::Error)]
+pub enum AppError {
+    #[error("XML Parsing Error")]
+    XmlReaderError(#[from] xml::reader::Error),
+
+    #[error("IO Error: {0}")]
+    IoError(#[from] io::Error),
+
+    #[error("Bank Path Error: {0}")]
+    BankPathError(#[from] BankPathError),
+
+    #[error("Bank Content Error: {0}")]
+    BankParseError(#[from] BankParserError),
+
+    #[error("Signature tag not found or missing in bank file")]
     SignatureNotFound,
-    RegexError(RegexError),
+
+    #[error("Regex Error")]
+    RegexError(#[from] RegexError),
+
+    #[error("File not found: {0}")]
+    FileNotFound(PathBuf)
 }
-
-macro_rules! impl_app_error {
-    ($enum_type:ident, $error_type:ty) => {
-        impl From<$error_type> for AppError {
-            fn from(err: $error_type) -> Self {
-                AppError::$enum_type(err)
-            }
-        }
-    };
-}
-
-impl_app_error!(XmlReaderError, xml::reader::Error);
-impl_app_error!(IoError, std::io::Error);
-impl_app_error!(BankPathError, BankPathError);
-impl_app_error!(BankParseError, BankParserError);
-impl_app_error!(RegexError, RegexError);
-
-
-impl std::fmt::Display for AppError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            AppError::XmlReaderError(e) => write!(f, "XML Reader Error: {}", e),
-            AppError::IoError(err) => write!(f, "IO Error: {}", err),
-            AppError::BankPathError(err) => write!(f, "Bank Path Error: {}", err),
-            AppError::BankParseError(err) => write!(f, "Bank Parse Error: {}", err),
-            AppError::SignatureNotFound => write!(f, "Signature tag not found in bank file"),
-            AppError::RegexError(err) => write!(f, "Regex Error: {}", err),
-        }
-    }
-}
-
-
-

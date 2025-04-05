@@ -1,3 +1,6 @@
+use std::fmt;
+use std::str::FromStr;
+
 #[derive(Debug, Clone)]
 pub struct Fixed(pub f32);
 impl Fixed {
@@ -7,18 +10,28 @@ impl Fixed {
 }
 
 impl std::fmt::Display for Fixed {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.0.fract() == 0.0 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.0.fract().abs() < f32::EPSILON {
+            // Format as integer if effectively whole
             write!(f, "{}", self.0 as i32)
         } else {
+            // Default float formatting
             write!(f, "{}", self.0)
         }
     }
 }
 
-impl From<&str> for Fixed {
-    fn from(value: &str) -> Self {
-        Fixed(value.parse().unwrap_or(0.0))
+impl FromStr for Fixed {
+    type Err = std::num::ParseFloatError; // Use standard error type
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // Return Result, let caller decide on default if needed
+        s.parse().map(Fixed)
     }
 }
 
+impl From<&str> for Fixed {
+    fn from(value: &str) -> Self {
+        Fixed::from_str(value).unwrap_or(Fixed(0.0))
+    }
+}

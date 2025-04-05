@@ -1,32 +1,53 @@
 use clap::Parser;
-use sc2_bank_signer::{AppResult, Args};
+use log::{error, info, LevelFilter};
 use sc2_bank_signer::bank_parser::BankParser;
+use sc2_bank_signer::{AppResult, Args};
 
-fn main() -> AppResult<()> {
+
+fn setup_logger() {
+
+    env_logger::builder()
+        .filter_level(LevelFilter::Info)
+        .init();
+}
+
+
+fn run_app() -> AppResult<()>{
     let args = Args::parse();
-
+    setup_logger();
     // Create the parser (which also computes the signature)
-    let bank_parser =  BankParser::new(&args)?;
+    let bank_parser = BankParser::new(&args)?;
+
     println!("{}", bank_parser.bank_path);
+
     let matches = bank_parser.compare_signature();
 
-    // Only attempt to write if the flag is set
+    // Handle writing back to file
     if args.write {
         if matches {
-            println!("Signature already matches. No replacement needed.");
+            info!("Signature already matches. No replacement needed.");
         } else {
-            // Call the replace function to overwrite the file
-            match bank_parser.replace_signature() {
-                Ok(_) => println!("Bank file signature updated successfully."),
-                Err(e) => {
-                    eprintln!("Failed to replace signature: {}", e);
-                    // Decide if you want to return the error or just print it
-                    return Err(e);
-                }
-            }
+            info!("Signature differs, attempting replacement...");
+            bank_parser.replace_signature()?;
+            info!("Bank file signature updated successfully.");
         }
+    } else if !matches {
+        info!("Signature does not match. Run with --write (-w) flag to replace the signature in the file.");
     } else {
-        println!("Run with --write (-w) flag to replace the signature in the file.");
+        info!("Signature matches. No action requested.");
     }
     Ok(())
+}
+
+fn main(){
+    match run_app() {
+        Ok(_) => {
+            info!("Operation completed successfully.");
+        }
+        Err(err) => {
+
+            error!("{}", err);
+            std::process::exit(1);
+        }
+    }
 }
