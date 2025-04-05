@@ -1,0 +1,10 @@
+[package]
+name = "sc2_bank_signer"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+xml-rs = "0.8.25"
+sha1="0.10.6"
+hex="0.4.3"
+clap = {version = "4.5.35", features = ["derive"]}
