@@ -1,5 +1,5 @@
 use std::path::Path;
-use crate::{AppResult};
+use crate::{AppResult, Args};
 
 #[derive(Debug)]
 pub enum BankPathError{
@@ -35,49 +35,54 @@ pub struct BankPath {
 }
 
 impl BankPath{
-    pub fn new(full_path:String, real_name:Option<String>) -> AppResult<Self>{
-        let (bank_name, author_handle, player_handle) = {
-            let path = Path::new(&full_path);
+    pub fn new(args:&Args) -> AppResult<Self>{
+        let path = Path::new(&args.bank_path);
+        let bank_name = args.bank_name.clone().unwrap_or(
+            path
+                .file_name()
+                .ok_or(BankPathError::BankNotFound)?
+                .to_str()
+                .ok_or(BankPathError::InvalidBankFileName)?
+                .trim_end_matches(".SC2Bank").to_string()
+        );
 
-            let bank_name = if let Some(real_name) = real_name {
-                real_name
-            } else {
-                path
-                    .file_name()
-                    .ok_or(BankPathError::BankNotFound)?
-                    .to_str()
-                    .ok_or(BankPathError::InvalidBankFileName)?
-                    .trim_end_matches(".SC2Bank").to_string()
-            };
 
-            // The game_id is expected to be the name of the parent directory.
-            let author_handle = path
+
+        let author_handle = args.author_handle.clone().unwrap_or(
+            path
                 .parent()
                 .and_then(|p| p.file_name())
                 .ok_or(BankPathError::MissingAuthorHandle)?
                 .to_str()
-                .ok_or(BankPathError::InvalidAuthorHandle)?.to_string();
+                .ok_or(BankPathError::InvalidAuthorHandle)?.to_string()
+        );
 
-            // The player_id is expected to be the parent of the directory containing the game_id.
-            let player_handle = path
+        let player_handle = args.player_handle.clone().unwrap_or(
+            path
                 .parent()
                 .and_then(|p| p.parent())
                 .and_then(|p| p.parent())
                 .and_then(|p| p.file_name())
                 .ok_or(BankPathError::MissingPlayerHandle)?
                 .to_str()
-                .ok_or(BankPathError::InvalidPlayerHandle)?.to_string();
-            (
-                bank_name,
-                author_handle,
-                player_handle,
-            )
-        };
+                .ok_or(BankPathError::InvalidPlayerHandle)?.to_string()
+        );
         Ok(BankPath {
-            full_path,
+            full_path:args.bank_path.clone(),
             bank_name,
             author_handle,
             player_handle,
         })
+    }
+}
+
+
+impl std::fmt::Display for BankPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "Bank File Details:")?;
+        writeln!(f, "  Bank File Name: '{}'", self.bank_name)?;
+        writeln!(f, "  Author Handle:   {}", self.author_handle)?;
+        writeln!(f, "  Player Handle:   {}", self.player_handle)?;
+        write!(f, "  Full Path:       {}", self.full_path)
     }
 }

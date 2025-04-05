@@ -11,7 +11,7 @@ impl std::fmt::Display for Fixed {
         if self.0.fract() == 0.0 {
             write!(f, "{}", self.0 as i32)
         } else {
-            write!(f, "{:.2}", self.0)
+            write!(f, "{}", self.0)
         }
     }
 }
