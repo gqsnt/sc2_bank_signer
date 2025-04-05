@@ -5,7 +5,6 @@ A command-line utility written in Rust to parse, validate, and optionally re-sig
 ## Overview
 
 StarCraft II uses `.SC2Bank` files to store persistent data for custom maps and mods. These files are XML-based and contain a digital signature to ensure data integrity. This tool allows developers, modders, and researchers to:
-
 1.  **Parse** the structure of a `.SC2Bank` file.
 2.  **Calculate** the expected signature based on the bank's content and associated metadata (author handle, player handle, bank name).
 3.  **Compare** the calculated signature against the signature currently stored within the file.
@@ -14,36 +13,11 @@ StarCraft II uses `.SC2Bank` files to store persistent data for custom maps and 
 ## Features
 
 * **XML Parsing:** Reads and interprets the structure of `.SC2Bank` files, including Sections, Keys, and Value elements with various attribute types (`int`, `fixed`, `flag`, `string`, `text`).
-* **Accurate Signature Calculation:** Implements the specific algorithm used by StarCraft II for bank signature generation (see [Signature Algorithm](#signature-algorithm)).
 * **Signature Validation:** Compares the computed signature against the existing `<Signature value="..."/>` tag in the bank file.
 * **Signature Replacement:** Optionally overwrites the existing signature in the bank file with the re-calculated one using the `--write` flag.
 * **Path Metadata Extraction:** Attempts to automatically determine the `Author Handle`, `Player Handle`, and `Bank Name` required for signing based on the standard StarCraft II bank file directory structure.
 * **Metadata Override:** Allows explicit specification of `Author Handle`, `Player Handle`, and `Bank Name` via command-line arguments, useful if the file path doesn't match the standard structure or if simulating different contexts.
 * **Cross-Platform:** Built with Rust, it should compile and run on Windows, macOS, and Linux.
-
-## Signature Algorithm
-
-The signature is a SHA-1 hash derived from a specific concatenation of bank data elements, sorted in a precise order:
-
-1.  **Author Handle** (e.g., `1-S2-1-AUTH_HANDLE`)
-2.  **Player Handle** (e.g., `2-S2-1-PLAYER_HANDLE`)
-3.  **Bank Name** (Logical name, typically the filename without `.SC2Bank`)
-4.  **Sections** (Sorted alphabetically by the `name` attribute)
-    * For each Section:
-        * Section `name`
-        * **Keys** (Sorted alphabetically by the `name` attribute)
-            * For each Key:
-                * Key `name`
-                * **Value Elements** (Sorted alphabetically by tag name, e.g., `<Value/>`, `<Data/>`)
-                    * For each Value Element:
-                        * Tag name (e.g., `Value`)
-                        * **Attributes** (Sorted alphabetically by attribute name: `fixed`, `flag`, `int`, `string`, `text`)
-                            * For each Attribute:
-                                * Attribute name (e.g., `int`, `fixed`)
-                                * Attribute value (e.g., `10`, `3.14`)
-                                    * **Exception:** The *value* of the `text` attribute is **NOT** included in the concatenated string for hashing. Only the attribute name "text" is included.
-
-All these string components are joined together without separators, and the SHA-1 hash of the resulting UTF-8 byte string is calculated. The final signature is the uppercase hexadecimal representation of this hash.
 
 ## Installation
 
