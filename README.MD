@@ -29,7 +29,7 @@ StarCraft II uses `.SC2Bank` files to store persistent data for custom maps and 
 
 1.  **Clone the repository:**
     ```bash
-    git clone <your-repository-url>
+    git clone https://github.com/gqsnt/sc2_bank_signer
     cd sc2_bank_signer
     ```
 2.  **Build the release executable:**
